@@ -2,7 +2,7 @@ Docker for WEB
 ==========
 Docker for WEB 
 
-docker-swarm + stack,
+docker-compose + stack,
 
 registry,
 
