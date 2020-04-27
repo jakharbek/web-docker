@@ -1,0 +1,171 @@
+#frontend
+server {
+    charset utf-8;
+    client_max_body_size 128M;
+
+    listen 80;
+
+    server_name ${NGINX_FRONTEND_HOST} www.${NGINX_FRONTEND_HOST};
+    root   /app/${NGINX_FRONTEND_DIR};
+    index  index.php;
+
+    access_log  /var/log/nginx/${NGINX_FRONTEND_HOST}.access.log;
+    error_log   /var/log/nginx/${NGINX_FRONTEND_HOST}.error.log;
+
+    location / {
+        # Redirect everything that isn't a real file to index.php
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    # uncomment to avoid processing of calls to non-existing static files by Yii
+    #location ~ \.(js|css|png|jpg|gif|swf|ico|pdf|mov|fla|zip|rar)$ {
+    #    try_files $uri =404;
+    #}
+    #error_page 404 /404.html;
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        if (!-f $document_root$fastcgi_script_name) {
+                return 404;
+        }
+
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_read_timeout 600s;
+    }
+
+    location ~ /\.(git) {
+        deny all;
+    }
+}
+
+#backend
+server {
+    charset utf-8;
+    client_max_body_size 128M;
+
+    listen 81;
+
+    server_name ${NGINX_BACKEND_HOST} www.${NGINX_BACKEND_HOST};
+    root   /app/${NGINX_BACKEND_DIR};
+    index  index.php;
+
+    access_log  /var/log/nginx/${NGINX_BACKEND_HOST}.access.log;
+    error_log   /var/log/nginx/${NGINX_BACKEND_HOST}.error.log;
+
+    location / {
+        # Redirect everything that isn't a real file to index.php
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    # uncomment to avoid processing of calls to non-existing static files by Yii
+    #location ~ \.(js|css|png|jpg|gif|swf|ico|pdf|mov|fla|zip|rar)$ {
+    #    try_files $uri =404;
+    #}
+    #error_page 404 /404.html;
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        if (!-f $document_root$fastcgi_script_name) {
+                return 404;
+        }
+
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_read_timeout 600s;
+    }
+
+    location ~ /\.(git) {
+        deny all;
+    }
+}
+
+
+#cdn
+server {
+    charset utf-8;
+    client_max_body_size 128M;
+
+    listen 82;
+
+    server_name ${NGINX_CDN_HOST} www.${NGINX_CDN_HOST};
+    root   /app/${NGINX_CDN_DIR};
+    index  index.php;
+
+    access_log  /var/log/nginx/${NGINX_CDN_HOST}.access.log;
+    error_log   /var/log/nginx/${NGINX_CDN_HOST}.error.log;
+
+    location / {
+    	try_files $uri =404;
+    }
+
+    gzip            on;
+    gzip_types      text/plain text/css application/xml application/font-woff image/gif image/jpeg image/png image/svg+xml;
+
+    location ~* ^.+\.(jpg|jpeg|gif|png|ico|css|pdf|ppt|txt|bmp|rtf|js)$ {
+    root   /app/${NGINX_CDN_DIR};
+           access_log        off;
+           expires           365d;
+           add_header Cache-Control public;
+    }
+
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+
+    location ~ /\.ht {
+        deny  all;
+    }
+}
+
+
+#api
+server {
+    charset utf-8;
+    client_max_body_size 128M;
+
+    listen 83;
+
+    server_name ${NGINX_API_HOST} www.${NGINX_API_HOST};
+    root   /app/${NGINX_API_DIR};
+    index  index.php index.html;
+
+    access_log  /var/log/nginx/${NGINX_API_HOST}.access.log;
+    error_log   /var/log/nginx/${NGINX_API_HOST}.error.log;
+
+    location / {
+        # Redirect everything that isn't a real file to index.php
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    # uncomment to avoid processing of calls to non-existing static files by Yii
+    #location ~ \.(js|css|png|jpg|gif|swf|ico|pdf|mov|fla|zip|rar)$ {
+    #    try_files $uri =404;
+    #}
+    #error_page 404 /404.html;
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        if (!-f $document_root$fastcgi_script_name) {
+                return 404;
+        }
+
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_read_timeout 600s;
+    }
+
+    location ~ /\.(git) {
+        deny all;
+    }
+}

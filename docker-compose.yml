@@ -1,0 +1,214 @@
+version: '3.2'
+services:
+
+  app:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-app:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-app
+    build:
+      context: .
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+        NODE_VERSION: ${NODE_VERSION}
+        NPM_VERSION: ${NPM_VERSION}
+        HTTP_PROXY:  ${HTTP_PROXY}
+        APP_ENV: ${APP_ENV}
+    volumes:
+      - './:/app'
+    env_file: .env
+    expose:
+      - 9005
+      - 9000
+    ports:
+      - ${SUPERVIZORD_PORT}:9001
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  nginx:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-nginx:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-nginx
+    links:
+      - app
+    depends_on:
+      - app
+    build:
+      context: ./docker/nginx
+    restart: always
+    ports:
+      - ${NGINX_FRONTEND_PORT}:80
+      #- ${NGINX_BACKEND_PORT}:81
+      - ${NGINX_API_PORT}:82
+      - ${NGINX_CDN_PORT}:83
+    command: sh -c "envsubst '$$NGINX_CDN_HOST $$NGINX_CDN_PORT $$NGINX_CDN_DIR $$NGINX_API_HOST $$NGINX_API_PORT $$NGINX_API_DIR $$NGINX_BACKEND_HOST $$NGINX_BACKEND_PORT $$NGINX_BACKEND_DIR $$NGINX_FRONTEND_HOST $$NGINX_FRONTEND_PORT $$NGINX_FRONTEND_DIR $$CONTAINER_NAME' < /etc/nginx/conf.d/nginx.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  postgres:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-postgres:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-postgres
+    build: ./docker/postgres
+    restart: always
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - './data/postgres:/var/lib/postgresql/data'
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  mysql:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-mysql:${APP_VERSION}.${BUILD_NUMBER}
+    build:
+      context: ./docker/mysql
+      args:
+        MYSQL_VERSION: ${MYSQL_VERSION}
+    volumes:
+      - './data/mysql:/var/lib/mysql'
+    ports:
+      - ${MYSQL_PORT}:3306
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  swagger-ui:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-swagger-ui:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-swagger-ui
+    build: ./docker/swaggerui
+    ports:
+      - ${SWAGGER_UI_PORT}:8080
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  mailcatcher:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-mailcatcher:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-mailcatcher
+    build: ./docker/mailcatcher
+    ports:
+      - ${MAILCATCHER_PORT}:1080
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+#  redis:
+#    image: ${REGISTRY_URL}/${CONTAINER_NAME}-redis:${APP_VERSION}.${BUILD_NUMBER}
+#    container_name: ${CONTAINER_NAME}-redis
+#    build: ./docker/redis
+#    ports:
+#      - ${REDIS_PORT}:6379
+#    deploy:
+#      mode: replicated
+#      replicas: 1
+#    env_file: .env
+
+  rabbitmq:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-redis:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-redis
+    build: ./docker/rabbitmq
+    restart: always
+    ports:
+      - ${RABBITMQ_PORT_1}:15672
+      - ${RABBITMQ_PORT_2}:5672
+      - ${RABBITMQ_PORT_3}:4369
+      - ${RABBITMQ_PORT_4}:25672
+    volumes:
+      - './data/rabbitmq:/var/lib/rabbitmq'
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  phpmyadmin:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-phpmyadmin:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-phpmyadmin
+    build: ./docker/phpmyadmin
+    ports:
+      - ${PHPMYADMIN_PORT}:80
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  elasticsearch:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-elasticsearch:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-elasticsearch
+    build:
+      context: ./docker/elk/elasticsearch
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - './docker/elk/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml'
+      - './docker/elk/elasticsearch:/usr/share/elasticsearch/data'
+    ports:
+      - ${ES_PORT_1}:9200
+      - ${ES_PORT_2}:9300
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+  logstash:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-logstash:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-logstash
+    build:
+      context: ./docker/elk/logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - './docker/elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml'
+      - './docker/elk/logstash/pipeline:/usr/share/logstash/pipeline'
+    ports:
+      - ${LS_PORT_1}:5000
+      - ${LS_PORT_2}:9600
+    depends_on:
+      - elasticsearch
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+  kibana:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-kibana:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-kibana
+    build:
+      context: ./docker/elk/kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - './docker/elk/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml'
+    ports:
+      - ${KIBANA_PORT}:5601
+    depends_on:
+      - elasticsearch
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  mongo:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-mongo:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-mongo
+    build:
+      context: ./docker/mongo/
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env
+
+  mongo-express:
+    image: ${REGISTRY_URL}/${CONTAINER_NAME}-mongo-express:${APP_VERSION}.${BUILD_NUMBER}
+    container_name: ${CONTAINER_NAME}-mongo-express
+    build:
+      context: ./docker/mongo-express
+    restart: always
+    ports:
+      - ${MANGO_EXPRESS_PORT}:8081
+    deploy:
+      mode: replicated
+      replicas: 1
+    env_file: .env

@@ -1,0 +1,41 @@
+image: docker:latest
+services:
+  - docker:dind
+before_script:
+  - apk add --no-cache python py2-pip git rsync sshpass openssh curl
+  - pip install --no-cache-dir docker-compose==1.16.0
+  - mkdir -p ~/.ssh && chmod 777 ~/.ssh
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  - docker info
+stages:
+  - deploy
+  - notify
+dev:
+  stage: deploy
+  environment:
+    name: Developement
+  script:
+    - sshpass -p $SSH_PASS_DEV rsync -riz --links -e "ssh -o StrictHostKeyChecking=no" $SSH_DIRECTORY_LOCAL_DEV $SSH_USER_DEV@$SSH_HOST_DEV:$SSH_DIRECTORY_REMOTE_DEV
+    - sshpass -p $SSH_PASS_DEV ssh $SSH_USER_DEV@$SSH_HOST_DEV "cd $SSH_DIRECTORY_REMOTE_DEV && php init --env=Development --overwrite=All"
+    - sshpass -p $SSH_PASS_DEV ssh $SSH_USER_DEV@$SSH_HOST_DEV "cd $SSH_DIRECTORY_REMOTE_DEV && composer update"
+    - sshpass -p $SSH_PASS_DEV ssh $SSH_USER_DEV@$SSH_HOST_DEV "cd $SSH_DIRECTORY_REMOTE_DEV && php yii migrate/up --interactive=0"
+    - sh .ci-notify.sh ✅
+  only:
+    - development
+prod:
+  stage: deploy
+  environment:
+    name: Production
+  script:
+    - sshpass -p $SSH_PASS_PROD rsync -riz --links -e "ssh -o StrictHostKeyChecking=no" $SSH_DIRECTORY_LOCAL_PROD $SSH_USER_PROD@$SSH_HOST_PROD:$SSH_DIRECTORY_REMOTE_PROD
+    - sshpass -p $SSH_PASS_PROD ssh $SSH_USER_PROD@$SSH_HOST_PROD "cd $SSH_DIRECTORY_REMOTE_PROD && php init --env=Production --overwrite=All"
+    - sshpass -p $SSH_PASS_PROD ssh $SSH_USER_PROD@$SSH_HOST_PROD "cd $SSH_DIRECTORY_REMOTE_PROD && composer update"
+    - sshpass -p $SSH_PASS_PROD ssh $SSH_USER_PROD@$SSH_HOST_PROD "cd $SSH_DIRECTORY_REMOTE_PROD && php yii migrate/up --interactive=0"
+    - sh .ci-notify.sh ✅
+  only:
+    - master
+notify_error:
+  stage: notify
+  script:
+    - sh .ci-error-notify.sh ❌
+  when: on_failure #deploy fail

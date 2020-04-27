@@ -1,0 +1,13 @@
+{
+    "name": "jakharbek/web-docker-gitlab-ci",
+    "description": "Docker for Web and Gitlab CI",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jakharbek",
+            "email": "javhar_work@mail.ru"
+        }
+    ],
+    "require": {}
+}
