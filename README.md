@@ -1,6 +1,6 @@
 Docker for WEB
 ==========
-Docker for WEB
+Docker for WEB (docker-swarm + stack, registry, version,build (semver),proxy,php + node, nginx,postgres,mysql,redis,rabbitmq,supervizord + cron,mailcatcher,phpmyadmin,swagger,elk (elasticsearch,logstash,kibana),mongo + mongo-express)
 
 Installation
 ------------
