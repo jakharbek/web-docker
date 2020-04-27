@@ -1,6 +1,6 @@
 {
-    "name": "jakharbek/web-docker-gitlab-ci",
-    "description": "Docker for Web and Gitlab CI",
+    "name": "jakharbek/web-docker",
+    "description": "Docker for Web",
     "type": "project",
     "license": "MIT",
     "authors": [
