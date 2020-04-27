@@ -1,6 +1,6 @@
-Docker for WEB and Gitlab CI
+Docker for WEB
 ==========
-Docker for WEB and Gitlab CI
+Docker for WEB
 
 Installation
 ------------
@@ -10,7 +10,7 @@ The preferred way to install this extension is through [composer](http://getcomp
 Either run
 
 ```
-composer create-project jakharbek/web-docker-gitlab-ci
+composer create-project jakharbek/web-docker
 ```
 
 
