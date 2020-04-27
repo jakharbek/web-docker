@@ -19,6 +19,7 @@ RUN apt-get update && \
             git \
             curl \
             cron \
+            wget \
             supervisor \
             imagemagick \
             libcurl3-dev \
@@ -106,14 +107,16 @@ RUN command -v npm
 #copy
 COPY ./ /app
 
+#init
+WORKDIR /app
+
+RUN chmod 777 ./initialize.sh
+
 RUN if [ $APP_ENV = "dev" ]; then \
         ./init-dev.sh; \
     else \
         echo "prod"; \
     fi
-
-#init
-WORKDIR /app
 
 
 EXPOSE 9000
